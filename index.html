@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tantangan THR Kejutan! 🌙</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { --primary: #064e3b; --accent: #f59e0b; --bg: #fdfbf0; }
+        body { background: var(--primary); font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; color: #333; -webkit-user-select: none; user-select: none; }
+        .card { background: var(--bg); width: 90%; max-width: 380px; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.5); border: 3px solid var(--accent); position: relative; }
+        .hidden { display: none !important; }
+        label { display: block; text-align: left; font-size: 0.8rem; font-weight: bold; color: var(--primary); margin-top: 10px; }
+        input { width: 100%; padding: 12px; margin: 5px 0 15px 0; border-radius: 10px; border: 2px solid #ddd; box-sizing: border-box; font-size: 1rem; }
+        button { background: var(--accent); color: white; border: none; padding: 15px 25px; border-radius: 50px; font-weight: bold; cursor: pointer; width: 100%; font-size: 1rem; transition: 0.3s; margin-top: 10px; outline: none; }
+        #drawBtn.spinning { background: #e11d48; }
+        .slot-box { background: #fff; border: 2px dashed var(--accent); border-radius: 15px; margin: 20px 0; padding: 25px; min-height: 80px; display: flex; align-items: center; justify-content: center; }
+        #nominal { font-size: 2.5rem; font-weight: bold; color: #b45309; }
+        .msg { font-size: 0.95rem; color: #666; margin-bottom: 15px; line-height: 1.4; }
+        .receipt { background: white; border: 1px solid #eee; padding: 20px; border-radius: 10px; text-align: left; margin-top: 20px; border-top: 5px solid #25D366; }
+        .receipt h3 { margin: 0 0 15px 0; font-size: 1rem; color: #25D366; text-align: center; }
+        .receipt-row { display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 0.85rem; border-bottom: 1px dotted #eee; padding-bottom: 5px; }
+        .receipt-val { font-weight: bold; color: #333; }
+        .btn-wa { background: #25D366; text-decoration: none; display: block; color: white; padding: 15px; border-radius: 50px; font-weight: bold; margin-top: 20px; animation: pulse 1.5s infinite; }
+        .btn-reset { background: #64748b; margin-top: 15px; font-size: 0.85rem; padding: 10px; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(37, 211, 102, 0); } 100% { box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); } }
+    </style>
+</head>
+<body oncontextmenu="return false;">
+
+<div class="card">
+    <div id="step-1">
+        <h2 style="color: var(--primary); margin: 0 0 10px 0;">Pengaturan THR</h2>
+        <p class="msg">Siapkan tantangan untuk temanmu!</p>
+        <label>Nama Penerima (Temanmu)</label>
+        <input type="text" id="penerima" placeholder="Contoh: Budi">
+        <label>Nama Pemberi (Kamu)</label>
+        <input type="text" id="pemberi" placeholder="Contoh: Hafidz">
+        <label>Nomor WA Kamu (Gunakan 62)</label>
+        <input type="number" id="noWA" placeholder="628123456789">
+        <button onclick="setupDone()">Mulai Tantangan!</button>
+    </div>
+
+    <div id="step-2" class="hidden">
+        <h2 id="welcome-msg" style="color: var(--primary); font-size: 1.1rem; margin: 5px 0; line-height: 1.4;"></h2>
+        <div class="slot-box"><div id="nominal">Rp 0</div></div>
+        
+        <div id="game-controls">
+            <p id="zonk-msg" class="msg">Klik tombol di bawah untuk mulai acak!</p>
+            <button id="drawBtn" onclick="toggleSpin()">WITHDRAW SEKARANG</button>
+        </div>
+        
+        <div id="jackpot-area" class="hidden">
+            <div class="receipt">
+                <h3>BUKTI BERHASIL WITHDRAW</h3>
+                <div class="receipt-row"><span>Status</span><span class="receipt-val" style="color: #25D366;">SUKSES</span></div>
+                <div class="receipt-row"><span>Penerima</span><span class="receipt-val" id="res-penerima"></span></div>
+                <div class="receipt-row"><span>Pemberi</span><span class="receipt-val" id="res-pemberi"></span></div>
+                <div class="receipt-row"><span>Nominal</span><span class="receipt-val" id="res-nominal"></span></div>
+                <div class="receipt-row" style="border: none;"><span>Tanggal</span><span class="receipt-val" id="res-date"></span></div>
+                <p style="font-size: 0.7rem; color: #999; text-align: center; margin-top: 10px;">Screenshot struk ini sebagai bukti sah!</p>
+            </div>
+            <a href="#" id="waLink" class="btn-wa" target="_blank">KONFIRMASI KE WA</a>
+            <button class="btn-reset" onclick="resetAll()">Selesai & Main Lagi 🔄</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let clickCount = 0;
+    let dataPenerima = "";
+    let dataPemberi = "";
+    let dataWA = "";
+    let isSpinning = false;
+    let spinInterval;
+    const jackpotTarget = 3;
+    const allNominals = [0, 500, 1000, 2000, 5000, 10000, 20000];
+    const hadiahReal = [10000, 25000, 50000, 75000, 100000];
+
+    document.onkeydown = function(e) {
+        if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) || (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) return false;
+    };
+
+    function setupDone() {
+        dataPenerima = document.getElementById('penerima').value;
+        dataPemberi = document.getElementById('pemberi').value;
+        dataWA = document.getElementById('noWA').value;
+        if (!dataPenerima || !dataPemberi || !dataWA) return alert("Lengkapi semua data!");
+        document.getElementById('step-1').classList.add('hidden');
+        document.getElementById('step-2').classList.remove('hidden');
+        document.getElementById('welcome-msg').innerText = "Selamat Datang, " + dataPenerima + "!";
+    }
+
+    function toggleSpin() {
+        const btn = document.getElementById('drawBtn');
+        const nominalDisplay = document.getElementById('nominal');
+        if (!isSpinning) {
+            isSpinning = true;
+            btn.innerText = "STOP!";
+            btn.classList.add('spinning');
+            spinInterval = setInterval(() => {
+                let r = allNominals[Math.floor(Math.random() * allNominals.length)];
+                nominalDisplay.innerText = "Rp " + r.toLocaleString('id-ID');
+            }, 50);
+        } else {
+            clearInterval(spinInterval);
+            isSpinning = false;
+            btn.innerText = "WITHDRAW SEKARANG";
+            btn.classList.remove('spinning');
+            clickCount++;
+            finalizeResult();
+        }
+    }
+
+    function finalizeResult() {
+        const nominalDisplay = document.getElementById('nominal');
+        const zonkMsg = document.getElementById('zonk-msg');
+        const welcomeMsg = document.getElementById('welcome-msg');
+        
+        if (clickCount < jackpotTarget) {
+            nominalDisplay.innerText = "Rp 0";
+            zonkMsg.innerHTML = "Yah... Zonk ya? Coba lagi!<br><b>Kesempatan masih ada!</b>";
+        } else {
+            const win = hadiahReal[Math.floor(Math.random() * hadiahReal.length)];
+            const formatted = "Rp " + win.toLocaleString('id-ID');
+            
+            welcomeMsg.innerText = "Selamat " + dataPenerima + "! Anda Berhasil Mendapatkan THR Sebesar:";
+            nominalDisplay.innerText = formatted;
+            nominalDisplay.style.color = "#25D366";
+            
+            document.getElementById('res-penerima').innerText = dataPenerima;
+            document.getElementById('res-pemberi').innerText = dataPemberi;
+            document.getElementById('res-nominal').innerText = formatted;
+            document.getElementById('res-date').innerText = new Date().toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+
+            document.getElementById('game-controls').classList.add('hidden');
+            document.getElementById('jackpot-area').classList.remove('hidden');
+            
+            const pesan = "*BUKTI WITHDRAW THR BERHASIL*\n\nHalo " + dataPemberi + ", saya *" + dataPenerima + "* telah mendapatkan THR sebesar *" + formatted + "*. \n\nMohon segera diproses! Terima kasih.";
+            document.getElementById('waLink').href = "https://api.whatsapp.com/send?phone=" + dataWA + "&text=" + encodeURIComponent(pesan);
+            confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 } });
+        }
+    }
+
+    // Fungsi untuk kembali ke halaman awal
+    function resetAll() {
+        clickCount = 0;
+        isSpinning = false;
+        document.getElementById('penerima').value = "";
+        document.getElementById('nominal').innerText = "Rp 0";
+        document.getElementById('nominal').style.color = "#b45309";
+        document.getElementById('step-2').classList.add('hidden');
+        document.getElementById('jackpot-area').classList.add('hidden');
+        document.getElementById('game-controls').classList.remove('hidden');
+        document.getElementById('step-1').classList.remove('hidden');
+        document.getElementById('zonk-msg').innerHTML = "Klik tombol di bawah untuk mulai acak!";
+    }
+</script>
+</body>
+</html>
