@@ -32,11 +32,11 @@
     <div id="step-1">
         <h2 style="color: var(--primary); margin: 0 0 10px 0;">Pengaturan THR</h2>
         <p class="msg">Siapkan tantangan untuk temanmu!</p>
-        <label>Nama Penerima (Temanmu)</label>
+        <label>Nama Penerima</label>
         <input type="text" id="penerima" placeholder="Contoh: Budi">
-        <label>Nama Pemberi (Kamu)</label>
+        <label>Nama Pemberi</label>
         <input type="text" id="pemberi" placeholder="Contoh: Hafidz">
-        <label>Nomor WA Kamu (Gunakan 62)</label>
+        <label>Nomor WA Pemberi</label>
         <input type="number" id="noWA" placeholder="628123456789">
         <button onclick="setupDone()">Mulai Tantangan!</button>
     </div>
@@ -75,7 +75,7 @@
     let spinInterval;
     const jackpotTarget = 3;
     const allNominals = [0, 500, 1000, 2000, 5000, 10000, 20000];
-    const hadiahReal = [10000, 25000, 50000, 75000, 100000];
+    const hadiahReal = [15000];
 
     document.onkeydown = function(e) {
         if(e.keyCode == 123 || (e.ctrlKey && e.shiftKey && (e.keyCode == 'I'.charCodeAt(0) || e.keyCode == 'C'.charCodeAt(0) || e.keyCode == 'J'.charCodeAt(0))) || (e.ctrlKey && e.keyCode == 'U'.charCodeAt(0))) return false;
